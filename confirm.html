@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Skysense · Activación de Cuenta</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:#F8FAFF;font-family:'DM Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:24px;}
+.card{background:#fff;border-radius:20px;padding:48px 44px;max-width:440px;width:100%;box-shadow:0 8px 48px rgba(26,63,163,.1);border:1px solid #E8EEF8;text-align:center;}
+.logo-wrap{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:32px;}
+.logo-mark{width:44px;height:44px;background:#1A3FA3;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;}
+.logo-name{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#0D1F5C;text-align:left;}
+.logo-sub{font-size:11px;color:#94A3B8;text-align:left;margin-top:1px;}
+.state{display:none;}.state.active{display:block;}
+.icon-success{width:72px;height:72px;margin:0 auto 24px;background:#ECFDF5;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;}
+.title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#0D1F5C;margin-bottom:10px;}
+.subtitle{font-size:14px;color:#64748B;line-height:1.7;margin-bottom:32px;}
+.btn{display:inline-flex;align-items:center;gap:10px;background:#1A3FA3;color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;transition:all .2s;}
+.btn:hover{background:#1530A3;transform:translateY(-1px);}
+.spinner{width:48px;height:48px;margin:0 auto 24px;border:3px solid #E2E8F0;border-top-color:#1A3FA3;border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.icon-error{width:72px;height:72px;margin:0 auto 24px;background:#FEF2F2;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;}
+.countdown{font-size:12px;color:#94A3B8;margin-top:16px;}
+.countdown strong{color:#1A3FA3;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo-wrap">
+    <div class="logo-mark">S</div>
+    <div>
+      <div class="logo-name">Skysense EPC</div>
+      <div class="logo-sub">Gestión de Proyectos · BESS & FV</div>
+    </div>
+  </div>
+
+  <div class="state active" id="state-loading">
+    <div class="spinner"></div>
+    <div class="title">Verificando cuenta…</div>
+    <div class="subtitle">Por favor espera un momento.</div>
+  </div>
+
+  <div class="state" id="state-success">
+    <div class="icon-success">✅</div>
+    <div class="title">¡Cuenta activada!</div>
+    <div class="subtitle">Tu cuenta ha sido verificada correctamente.<br>Ya puedes acceder a la plataforma EPC de Skysense.</div>
+    <a class="btn" href="EPC_Projects_Skysense.html">Ir a la plataforma →</a>
+    <div class="countdown">Redirigiendo en <strong id="seconds">5</strong> segundos…</div>
+  </div>
+
+  <div class="state" id="state-error">
+    <div class="icon-error">⚠️</div>
+    <div class="title">Enlace no válido</div>
+    <div class="subtitle" id="error-msg">El enlace expiró o ya fue usado. Solicita uno nuevo.</div>
+    <a class="btn" href="EPC_Projects_Skysense.html" style="background:#475569;">Ir a la plataforma →</a>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://qjipmpqkdvfqdcpviqhr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqaXBtcHFrZHZmcWRjcHZpcWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNTc4NTYsImV4cCI6MjA5NzgzMzg1Nn0.RdnQQG-VXkZjzSMrd6dpUCuLOm7vmx7-7W4drf0gKl0';
+const APP_URL = 'EPC_Projects_Skysense.html';
+
+function showState(id) {
+  document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startCountdown() {
+  let n = 5;
+  const el = document.getElementById('seconds');
+  const t = setInterval(() => { n--; if(el) el.textContent=n; if(n<=0){clearInterval(t);window.location.href=APP_URL;} }, 1000);
+}
+
+async function handleConfirmation() {
+  // Lee tanto el hash como los query params
+  const hash = window.location.hash.substring(1);
+  const hashParams = new URLSearchParams(hash);
+  const queryParams = new URLSearchParams(window.location.search);
+
+  const accessToken  = hashParams.get('access_token')  || queryParams.get('access_token');
+  const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+  const type         = hashParams.get('type')          || queryParams.get('type');
+  const tokenHash    = hashParams.get('token_hash')    || queryParams.get('token_hash');
+  const error        = hashParams.get('error_description') || queryParams.get('error_description');
+
+  if (error) {
+    document.getElementById('error-msg').textContent = decodeURIComponent(error);
+    showState('state-error');
+    return;
+  }
+
+  // Caso 1: Supabase envió access_token directo en el hash (flujo PKCE)
+  if (accessToken) {
+    try {
+      localStorage.setItem('skysense_auth', JSON.stringify({
+        token:  accessToken,
+        refresh: refreshToken || '',
+        email:  '',
+        nombre: ''
+      }));
+      showState('state-success');
+      startCountdown();
+    } catch(e) {
+      showState('state-error');
+    }
+    return;
+  }
+
+  // Caso 2: token_hash para verificar con Supabase
+  if (tokenHash) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+        body: JSON.stringify({ token_hash: tokenHash, type: type || 'signup' })
+      });
+      const data = await res.json();
+      if (res.ok && data.access_token) {
+        localStorage.setItem('skysense_auth', JSON.stringify({
+          token:  data.access_token,
+          refresh: data.refresh_token || '',
+          email:  data.user?.email || '',
+          nombre: data.user?.user_metadata?.nombre || ''
+        }));
+        showState('state-success');
+        startCountdown();
+      } else {
+        document.getElementById('error-msg').textContent = data.error_description || 'Enlace no válido.';
+        showState('state-error');
+      }
+    } catch(e) {
+      showState('state-error');
+    }
+    return;
+  }
+
+  // Sin token — redirigir directo
+  window.location.href = APP_URL;
+}
+
+handleConfirmation();
+</script>
+</body>
+</html>
